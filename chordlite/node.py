@@ -62,12 +62,8 @@ class ChordNode:
             self.fingers[i] = forward.find_successor(key)
 
     def initiate_join(self, bootstrap: ChordNode):
-        # handle case when node is the first node of the network
-        if bootstrap.node_id == self.node_id:
+        if bootstrap.node_id != self.node_id:
             self.predecessor = self
-
-        # handle case when the node joins an existing network
-        else:
             new_successor = bootstrap.find_successor(self.node_id)
             status, new_predecessor = new_successor.challenge_join(self)
             # TODO: add error handling
@@ -82,7 +78,7 @@ class ChordNode:
                 # TODO: add error handling
 
     def challenge_join(self, joining_node: ChordNode) -> Tuple[ChordStatus, ChordNode]:
-        old_predecessor = self.predecessor
+        old_predecessor = self if self.is_uninitialized else self.predecessor
         self.predecessor = joining_node
         if self.is_uninitialized:
             for i in range(len(self.fingers)):

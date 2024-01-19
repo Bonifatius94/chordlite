@@ -1,3 +1,4 @@
+from random import shuffle
 from chordlite import ChordKey, ChordNode
 
 
@@ -39,6 +40,21 @@ def test_can_init_arbitrary_large_network():
     bootstrap = min(nodes, key=lambda n: n.node_id)
     for node in nodes:
         node.initiate_join(bootstrap)
+
+    exp_succs = nodes[1:] + [nodes[0]]
+    exp_preds = [nodes[-1]] + nodes[:-1]
+    assert [n.successor.node_id for n in nodes] == [n.node_id for n in exp_succs]
+    assert [n.predecessor.node_id for n in nodes] == [n.node_id for n in exp_preds]
+
+
+def test_can_init_arbitrary_large_network_unordered():
+    nodes = [ChordNode(ChordKey(k, 1024)) for k in range(0, 1024, 8)]
+    join_sequence = list(range(len(nodes)))
+    shuffle(join_sequence)
+
+    bootstrap = min(nodes, key=lambda n: n.node_id)
+    for i in join_sequence:
+        nodes[i].initiate_join(bootstrap)
 
     exp_succs = nodes[1:] + [nodes[0]]
     exp_preds = [nodes[-1]] + nodes[:-1]
