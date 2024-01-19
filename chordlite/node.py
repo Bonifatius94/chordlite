@@ -1,6 +1,6 @@
 from __future__ import annotations
 from enum import IntEnum
-from typing import List, Tuple, Optional
+from typing import List, Tuple, Optional, Protocol
 from dataclasses import dataclass, field
 from math import log2, ceil
 from chordlite.key import ChordKey
@@ -13,10 +13,28 @@ class ChordStatus(IntEnum):
 
 
 @dataclass
+class ChordEndpoint(Protocol):
+    node_id: ChordKey
+    successor: ChordEndpoint
+
+    def find_successor(self, key: ChordKey) -> ChordEndpoint:
+        raise NotImplementedError()
+
+    def find_predecessor(self, key: ChordKey) -> ChordEndpoint:
+        raise NotImplementedError()
+
+    def challenge_join(self, joining_node: ChordEndpoint) -> Tuple[ChordStatus, ChordEndpoint]:
+        raise NotImplementedError()
+
+    def notify(self, new_successor: ChordEndpoint) -> ChordStatus:
+        raise NotImplementedError()
+
+
+@dataclass
 class ChordNode:
     node_id: ChordKey
-    predecessor: ChordNode = field(default=None)
-    fingers: List[ChordNode] = field(init=False)
+    predecessor: ChordEndpoint = field(default=None)
+    fingers: List[ChordEndpoint] = field(init=False)
     finger_starts: List[ChordKey] = field(init=False)
 
     def __post_init__(self):
@@ -25,7 +43,7 @@ class ChordNode:
         self.predecessor = None
 
     @property
-    def successor(self) -> ChordNode:
+    def successor(self) -> ChordEndpoint:
         return self.fingers[0]
 
     @property
@@ -40,11 +58,11 @@ class ChordNode:
     def is_uninitialized(self) -> bool:
         return self.successor.node_id == self.node_id
 
-    def find_successor(self, key: ChordKey) -> ChordNode:
+    def find_successor(self, key: ChordKey) -> ChordEndpoint:
         pred = self.find_predecessor(key)
         return pred.successor
 
-    def find_predecessor(self, key: ChordKey) -> ChordNode:
+    def find_predecessor(self, key: ChordKey) -> ChordEndpoint:
         if self.is_uninitialized:
             return self
         elif key - self.node_id <= self.successor.node_id - self.node_id:
@@ -53,15 +71,15 @@ class ChordNode:
             forward = self.closest_preceding_finger(key)
             return forward.find_predecessor(key)
 
-    def closest_preceding_finger(self, key: ChordKey) -> ChordNode:
+    def closest_preceding_finger(self, key: ChordKey) -> ChordEndpoint:
         return max(self.fingers, key=lambda f: f.node_id - key)
 
-    def update_finger_table(self, bootstrap: Optional[ChordNode]=None):
+    def update_finger_table(self, bootstrap: Optional[ChordEndpoint]=None):
         forward = bootstrap if bootstrap else self
         for i, key in enumerate(self.finger_starts):
             self.fingers[i] = forward.find_successor(key)
 
-    def initiate_join(self, bootstrap: ChordNode):
+    def initiate_join(self, bootstrap: ChordEndpoint):
         if bootstrap.node_id != self.node_id:
             self.predecessor = self
             new_successor = bootstrap.find_successor(self.node_id)
@@ -77,7 +95,7 @@ class ChordNode:
                 status = self.predecessor.notify(self)
                 # TODO: add error handling
 
-    def challenge_join(self, joining_node: ChordNode) -> Tuple[ChordStatus, ChordNode]:
+    def challenge_join(self, joining_node: ChordEndpoint) -> Tuple[ChordStatus, ChordEndpoint]:
         old_predecessor = self if self.is_uninitialized else self.predecessor
         self.predecessor = joining_node
         if self.is_uninitialized:
@@ -87,7 +105,7 @@ class ChordNode:
             self.update_finger_table()
         return ChordStatus.SUCCESS, old_predecessor
 
-    def notify(self, new_successor: ChordNode) -> ChordStatus:
+    def notify(self, new_successor: ChordEndpoint) -> ChordStatus:
         old_successor = self.fingers[0]
         if new_successor.node_id - self.node_id < old_successor.node_id - self.node_id:
             self.fingers[0] = new_successor
