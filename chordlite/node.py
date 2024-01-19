@@ -51,7 +51,6 @@ class ChordNode:
             return self
         else:
             forward = self.closest_preceding_finger(key)
-            # print(f"recurse lookup: ({self.node_id}) -- {key} --> ({forward.node_id})")
             return forward.find_predecessor(key)
 
     def closest_preceding_finger(self, key: ChordKey) -> ChordNode:
@@ -69,28 +68,25 @@ class ChordNode:
 
         # handle case when the node joins an existing network
         else:
-            status = ChordStatus.FAILURE
-            while status != ChordStatus.SUCCESS:
-                new_successor = bootstrap.find_predecessor(self.node_id)
-                status, new_predecessor = new_successor.challenge_join(self)
+            new_successor = bootstrap.find_successor(self.node_id)
+            status, new_predecessor = new_successor.challenge_join(self)
+            # TODO: add error handling
 
             for i in range(len(self.fingers)):
                 self.fingers[i] = new_successor
             self.update_finger_table(new_successor)
+
             self.predecessor = new_predecessor
+            if self.predecessor != self.successor:
+                status = self.predecessor.notify(self)
+                # TODO: add error handling
 
     def challenge_join(self, joining_node: ChordNode) -> Tuple[ChordStatus, ChordNode]:
         old_predecessor = self.predecessor
-        if old_predecessor != self:
-            status = old_predecessor.notify(joining_node)
-            if status != ChordStatus.SUCCESS:
-                return status, None
-
         self.predecessor = joining_node
         if self.is_uninitialized:
-            self.update_finger_table(joining_node)
-            # for i in range(len(self.fingers)):
-            #     self.fingers[i] = joining_node
+            for i in range(len(self.fingers)):
+                self.fingers[i] = joining_node
         else:
             self.update_finger_table()
         return ChordStatus.SUCCESS, old_predecessor

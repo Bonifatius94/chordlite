@@ -31,23 +31,6 @@ def test_can_init_three_node_network():
     assert n3.predecessor == n2
 
 
-# def test_can_init_four_node_network():
-#     n1 = ChordNode(ChordKey(0, 1024))
-#     n2 = ChordNode(ChordKey(100, 1024))
-#     n3 = ChordNode(ChordKey(200, 1024))
-#     n4 = ChordNode(ChordKey(300, 1024))
-
-#     n1.initiate_join(n1)
-#     n2.initiate_join(n1)
-#     n3.initiate_join(n1)
-#     n4.initiate_join(n1)
-
-#     assert n1.successor == n2
-#     assert n2.successor == n3
-#     assert n3.successor == n4
-#     assert n4.successor == n1
-
-
 def test_can_init_arbitrary_large_network():
     nodes = [ChordNode(ChordKey(k, 1024)) for k in range(0, 1024, 8)]
     bootstrap = min(nodes, key=lambda n: n.node_id)
@@ -55,17 +38,12 @@ def test_can_init_arbitrary_large_network():
     for node in nodes:
         node.initiate_join(bootstrap)
 
-    # for node in nodes:
-    #     node.update_finger_table()
-
     succ_ids = [n.successor.node_id for n in nodes]
     pred_ids = [n.predecessor.node_id for n in nodes]
     fingers = [[f.node_id for f in n.fingers] for n in nodes]
 
     print(succ_ids)
     print(pred_ids)
-    # print(fingers)
-    # assert False
 
     exp_succs = nodes[1:] + [nodes[0]]
     exp_preds = [nodes[-1]] + nodes[:-1]
@@ -75,6 +53,3 @@ def test_can_init_arbitrary_large_network():
 
     assert [n.successor.node_id for n in nodes] == [n.node_id for n in exp_succs]
     assert [n.predecessor.node_id for n in nodes] == [n.node_id for n in exp_preds]
-
-    # assert all([n.predecessor == p and n.successor == s
-    #             for n, p, s in zip(nodes, exp_preds, exp_succs)])
