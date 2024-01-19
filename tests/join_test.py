@@ -1,5 +1,4 @@
-from chordlite.key import ChordKey
-from chordlite.node import ChordNode
+from chordlite import ChordKey, ChordNode
 
 
 def test_can_init_two_node_network():
@@ -26,7 +25,27 @@ def test_can_init_three_node_network():
 
     assert n1.successor == n2
     assert n2.successor == n3
-    assert n3.successor == n1 # TODO: debug why this assertion fails
+    assert n3.successor == n1
+    assert n1.predecessor == n3
+    assert n2.predecessor == n1
+    assert n3.predecessor == n2
+
+
+# def test_can_init_four_node_network():
+#     n1 = ChordNode(ChordKey(0, 1024))
+#     n2 = ChordNode(ChordKey(100, 1024))
+#     n3 = ChordNode(ChordKey(200, 1024))
+#     n4 = ChordNode(ChordKey(300, 1024))
+
+#     n1.initiate_join(n1)
+#     n2.initiate_join(n1)
+#     n3.initiate_join(n1)
+#     n4.initiate_join(n1)
+
+#     assert n1.successor == n2
+#     assert n2.successor == n3
+#     assert n3.successor == n4
+#     assert n4.successor == n1
 
 
 def test_can_init_arbitrary_large_network():

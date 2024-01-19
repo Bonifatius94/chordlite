@@ -1,4 +1,4 @@
-from chordlite.key import ChordKey
+from chordlite import ChordKey
 
 
 def test_can_init_overflow_key():
