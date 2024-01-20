@@ -44,10 +44,6 @@ class ChordKey:
         other_value = other.value if type(other) == ChordKey else other
         return self.value >= other_value
 
-    def __le__(self, other: Union[int, ChordKey]) -> bool:
-        other_value = other.value if type(other) == ChordKey else other
-        return self.value <= other_value
-
     def __eq__(self, other: Union[int, ChordKey]) -> bool:
         other_value = other.value if type(other) == ChordKey else other
         return self.value == other_value
