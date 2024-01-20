@@ -38,21 +38,14 @@ class ChordNode:
     finger_starts: List[ChordKey] = field(init=False)
 
     def __post_init__(self):
-        self.fingers = [self for _ in range(self.m)]
-        self.finger_starts = [self.node_id + 2**i for i in range(self.m)]
+        m = int(ceil(log2(self.node_id.keyspace)))
+        self.fingers = [self for _ in range(m)]
+        self.finger_starts = [self.node_id + 2**i for i in range(m)]
         self.predecessor = None
 
     @property
     def successor(self) -> ChordEndpoint:
         return self.fingers[0]
-
-    @property
-    def keyspace(self) -> int:
-        return self.node_id.keyspace
-
-    @property
-    def m(self) -> int:
-        return int(ceil(log2(self.keyspace)))
 
     @property
     def is_uninitialized(self) -> bool:
