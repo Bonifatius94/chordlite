@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from typing import Union
 
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class ChordKey:
     value: int
     keyspace: int

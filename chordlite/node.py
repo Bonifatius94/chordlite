@@ -11,7 +11,7 @@ class ChordStatus(IntEnum):
     TIMEOUT = 2
 
 
-class ChordKey:
+class ChordKey(Protocol):
     @property
     def value(self) -> int:
         raise NotImplementedError()
@@ -54,10 +54,15 @@ class ChordKey:
         raise NotImplementedError()
 
 
-@dataclass
 class ChordEndpoint(Protocol):
-    node_id: ChordKey
-    successor: ChordEndpoint
+
+    @property
+    def node_id(self) -> ChordKey:
+        raise NotImplementedError()
+
+    @property
+    def successor(self) -> ChordEndpoint:
+        raise NotImplementedError()
 
     def find_successor(self, key: ChordKey) -> ChordEndpoint:
         raise NotImplementedError()
@@ -75,7 +80,7 @@ class ChordEndpoint(Protocol):
 @dataclass
 class ChordNode:
     node_id: ChordKey
-    predecessor: ChordEndpoint = field(default=None)
+    predecessor: Optional[ChordEndpoint] = field(init=False)
     fingers: List[ChordEndpoint] = field(init=False)
     finger_starts: List[ChordKey] = field(init=False)
 
