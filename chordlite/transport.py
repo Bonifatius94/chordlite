@@ -1,6 +1,6 @@
 from __future__ import annotations
 from enum import IntEnum
-from typing import Tuple, Union, Protocol
+from typing import Tuple, Union, Protocol, Callable
 from dataclasses import dataclass, field
 from hashlib import sha256
 from time import sleep
@@ -9,7 +9,7 @@ from chordlite.key import ChordKey as RawChordKey
 from chordlite.node import ChordNode, ChordStatus, ChordEndpoint
 
 
-class ChordRequstType(IntEnum):
+class ChordRequestType(IntEnum):
     FIND_PRED = 0
     FIND_SUCC = 1
     JOIN = 2
@@ -108,15 +108,15 @@ class IPEndpointId:
         return self.key.__hash__()
 
     def __str__(self) -> str:
-        return self.key.__str__()
+        return f"{self.ip_address}:{self.port}"
 
     def __repr__(self) -> str:
-        return self.key.__repr__()
+        return f"{self.ip_address}:{self.port}"
 
 
 @dataclass
 class ChordRequest:
-    request_type: ChordRequstType
+    request_type: ChordRequestType
     forward_id: IPEndpointId
     receiver_id: IPEndpointId
     requester_id: IPEndpointId
@@ -133,16 +133,14 @@ class ChordResponse:
     status: ChordStatus = field(default=ChordStatus.SUCCESS)
 
 
-class Network(Protocol):
-    def send_message(self, message: ChordRequest) -> ChordResponse:
-        raise NotImplementedError()
+RequestSender = Callable[[ChordRequest], ChordResponse]
 
 
 @dataclass
 class ChordRemoteEndpoint:
     local_id: IPEndpointId
     remote_id: IPEndpointId
-    network: Network
+    network: RequestSender
 
     @property
     def node_id(self) -> ChordKey:
@@ -151,13 +149,13 @@ class ChordRemoteEndpoint:
     @property
     def successor(self) -> ChordEndpoint:
         request = ChordRequest(
-            ChordRequstType.SUCC_LOOKUP,
+            ChordRequestType.SUCC_LOOKUP,
             self.remote_id,
             self.local_id,
             self.remote_id,
             self.remote_id
         )
-        response = self.network.send_message(request)
+        response = self.network(request)
         endpoint = ChordRemoteEndpoint(
             self.local_id, response.successor_id, self.network
         )
@@ -165,13 +163,13 @@ class ChordRemoteEndpoint:
 
     def find_successor(self, key: ChordKey) -> ChordEndpoint:
         request = ChordRequest(
-            ChordRequstType.FIND_SUCC,
+            ChordRequestType.FIND_SUCC,
             self.remote_id,
             self.local_id,
             self.local_id,
             key
         )
-        response = self.network.send_message(request)
+        response = self.network(request)
         endpoint = ChordRemoteEndpoint(
             self.local_id, response.successor_id, self.network
         )
@@ -179,13 +177,13 @@ class ChordRemoteEndpoint:
 
     def find_predecessor(self, key: ChordKey) -> ChordEndpoint:
         request = ChordRequest(
-            ChordRequstType.FIND_SUCC,
+            ChordRequestType.FIND_SUCC,
             self.remote_id,
             self.local_id,
             self.local_id,
             key
         )
-        response = self.network.send_message(request)
+        response = self.network(request)
         endpoint = ChordRemoteEndpoint(
             self.local_id, response.predecessor_id, self.network
         )
@@ -193,13 +191,13 @@ class ChordRemoteEndpoint:
 
     def challenge_join(self, joining_node: ChordEndpoint) -> Tuple[ChordStatus, ChordEndpoint]:
         request = ChordRequest(
-            ChordRequstType.FIND_SUCC,
+            ChordRequestType.FIND_SUCC,
             self.remote_id,
             self.remote_id,
             self.local_id,
             self.local_id
         )
-        response = self.network.send_message(request)
+        response = self.network(request)
         endpoint = ChordRemoteEndpoint(
             self.local_id, response.predecessor_id, self.network
         )
@@ -207,19 +205,19 @@ class ChordRemoteEndpoint:
 
     def notify(self, new_successor: ChordEndpoint) -> ChordStatus:
         request = ChordRequest(
-            ChordRequstType.FIND_SUCC,
+            ChordRequestType.FIND_SUCC,
             self.remote_id,
             self.remote_id,
             self.local_id,
             self.local_id
         )
-        response = self.network.send_message(request)
+        response = self.network(request)
         return response.status
 
 
 @dataclass
 class ChordServer:
-    network: Network
+    network: RequestSender
     local: ChordNode
 
     @property
@@ -228,23 +226,23 @@ class ChordServer:
 
     def process_message(self, message: ChordRequest) -> ChordResponse:
         local_id: IPEndpointId = self.local.node_id
-        if message.request_type == ChordRequstType.SUCC_LOOKUP:
+        if message.request_type == ChordRequestType.SUCC_LOOKUP:
             response = ChordResponse(local_id, successor_id=self.local.successor.node_id)
             return response
-        elif message.request_type == ChordRequstType.FIND_PRED:
+        elif message.request_type == ChordRequestType.FIND_PRED:
             pred = self.local.find_predecessor(message.requested_resource_id)
             response = ChordResponse(local_id, predecessor_id=pred.node_id)
             return response
-        elif message.request_type == ChordRequstType.FIND_SUCC:
+        elif message.request_type == ChordRequestType.FIND_SUCC:
             succ = self.local.find_successor(message.requested_resource_id)
             response = ChordResponse(local_id, successor_id=succ.node_id)
             return response
-        elif message.request_type == ChordRequstType.JOIN:
+        elif message.request_type == ChordRequestType.JOIN:
             joining_node = ChordRemoteEndpoint(local_id, message.requester_id, self.network)
             status, pred = self.local.challenge_join(joining_node)
             response = ChordResponse(local_id, predecessor_id=pred.node_id, status=status)
             return response
-        elif message.request_type == ChordRequstType.NOTIFY:
+        elif message.request_type == ChordRequestType.NOTIFY:
             joining_node = ChordRemoteEndpoint(local_id, message.requester_id, self.network)
             status = self.local.notify(joining_node)
             response = ChordResponse(local_id, status=status)
@@ -256,7 +254,7 @@ class ChordServer:
 @dataclass
 class NetworkedChordNode:
     node_id: IPEndpointId
-    network: Network
+    network: RequestSender
     finger_update_interval_secs: float = 5.0
     node: ChordNode = field(init=False)
     server: ChordServer = field(init=False)

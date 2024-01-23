@@ -1,0 +1,17 @@
+version: "2.3"
+
+services:
+  dht-node:
+    image: dhtnode
+    build:
+      context: .
+      dockerfile: dht.Dockerfile
+    volumes:
+      - ./data:/app/data
+    ports:
+      - 5556
+    expose:
+      - 5555
+    deploy:
+      mode: replicated
+      replicas: 10

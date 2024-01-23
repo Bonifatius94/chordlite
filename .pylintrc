@@ -1,0 +1,2 @@
+disable=C0114, C0115, C0116, R0801
+fail-under=9.0
