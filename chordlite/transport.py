@@ -165,16 +165,18 @@ class NetworkedChordNode:
         self.node = ChordNode(self.node_id)
         self.server = ChordServer(self.network, self.node)
 
-    def join_network(self, bootstrap: ChordEndpoint):
+    def join_network(self, bootstrap_id: IPEndpointId):
+        bootstrap = ChordRemoteEndpoint(self.node_id, bootstrap_id, self.network)
         self.node.initiate_join(bootstrap)
 
         # TODO: periodically update finger table in background task
         sleep(self.finger_update_interval_secs)
         self.node.update_finger_table()
 
-    def lookup(self, key: ChordKey) -> ChordEndpoint:
-        return self.node.find_successor(key)
+    def lookup(self, key: ChordKey) -> IPEndpointId:
+        endpoint = self.node.find_successor(key)
+        endpoint_id: IPEndpointId = endpoint.node_id
+        return endpoint_id
 
-    # TODO: add http server receiving request as background task
     def process_message(self, message: ChordRequest) -> ChordResponse:
         return self.server.process_message(message)

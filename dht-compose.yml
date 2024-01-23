@@ -6,12 +6,17 @@ services:
     build:
       context: .
       dockerfile: dht.Dockerfile
+    environment:
+      CHORD_PORT: 5555
+      DHT_PORT: 5556
+      BROADCAST_PORT: 5557
     volumes:
       - ./data:/app/data
     ports:
-      - 5556
+      - 5556:5556
     expose:
       - 5555
+      - 5557
     deploy:
       mode: replicated
       replicas: 10

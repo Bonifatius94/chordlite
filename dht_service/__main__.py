@@ -11,12 +11,12 @@ from flask import Flask, request as flask_request, Response as HttpResponse
 
 from chordlite import \
     NetworkedChordNode, IPEndpointId, ChordStatus, \
-    ChordRequest, ChordResponse, ChordRequestType, \
-    ChordRemoteEndpoint, ResourceKey
+    ChordRequest, ChordResponse, ChordRequestType, ResourceKey
 
 
 CHORD_PORT = os.environ["CHORD_PORT"]
 DHT_PORT = os.environ["DHT_PORT"]
+BROADCAST_PORT = os.environ["BROADCAST_PORT"]
 
 
 def local_ip() -> str:
@@ -120,13 +120,13 @@ class NetworkBootstrapper:
                 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
                 sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
                 sock.bind((ip, 0))
-                sock.sendto(msg, ("255.255.255.255", 5555))
+                sock.sendto(msg, ("255.255.255.255", int(BROADCAST_PORT)))
                 sock.close()
             sleep(2)
 
     def receive_nodeid(self):
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        sock.bind(('', 5555))
+        sock.bind(('', int(BROADCAST_PORT)))
         remainder = ""
         while self.listen:
             msg = sock.recvfrom(1024)[0].decode("utf-8")
@@ -154,8 +154,8 @@ class DHTService:
             return HttpResponse(status=400)
 
         data_dict = loads(flask_request.data)
-        key = ResourceKey(data_dict["resource_id"], 1 << 256)
-        endpoint_id: IPEndpointId = self.node.lookup(key).node_id
+        key = ResourceKey(data_dict["resource_id"])
+        endpoint_id = self.node.lookup(key)
 
         response: str
         if endpoint_id != self.node.node_id:
@@ -174,8 +174,8 @@ class DHTService:
             return HttpResponse(status=400)
 
         data_dict = loads(flask_request.data)
-        key = ResourceKey(data_dict["resource_id"], 1 << 256)
-        endpoint_id: IPEndpointId = self.node.lookup(key).node_id
+        key = ResourceKey(data_dict["resource_id"])
+        endpoint_id = self.node.lookup(key)
 
         response: bytes
         if endpoint_id != self.node.node_id:
@@ -192,10 +192,10 @@ class DHTService:
             return HttpResponse(status=400)
 
         data_dict = loads(flask_request.data)
-        key = ResourceKey(data_dict["resource_id"], 1 << 256)
-        endpoint_id: IPEndpointId = self.node.lookup(key).node_id
+        key = ResourceKey(data_dict["resource_id"])
+        endpoint_id = self.node.lookup(key)
 
-        response: str
+        response: bytes
         if endpoint_id != self.node.node_id:
             response = send_request(
                 f"http://{endpoint_id.ip_address}:{DHT_PORT}/delete",
@@ -211,32 +211,45 @@ class ChordHttpNode:
     node: NetworkedChordNode = field(init=False)
     find_local: Callable[[], IPEndpointId] \
         = field(default=local_endpoint_factory)
+    dht: DHTService = field(init=False)
 
     @property
     def node_id(self) -> IPEndpointId:
         return self.node.node_id
 
-    def launch(self):
+    def launch_daemon(self):
         local_endpoint = self.find_local()
         self.node = NetworkedChordNode(
             local_endpoint, self.send_chord_request)
-        dht = DHTService(self.node)
+        self.dht = DHTService(self.node)
 
-        app = Flask(__name__)
-        app.route("/chord", methods=["POST"])(self.receive_chord_request)
-        app.route("/lookup", methods=["POST"])(dht.lookup)
-        app.route("/insert", methods=["POST"])(dht.insert)
-        app.route("/delete", methods=["POST"])(dht.delete)
-        app.run(debug=True, port=int(local_endpoint.port))
+        chord_thread = Thread(target=self.run_chord_http_endpoint)
+        dht_thread = Thread(target=self.run_dht_http_endpoint)
+        chord_thread.start()
+        dht_thread.start()
 
         sleep(10)
         bootstrapper = NetworkBootstrapper(local_endpoint)
         boostrap_id = bootstrapper.find_bootstrap()
-        bootstrap = ChordRemoteEndpoint(self.node_id, boostrap_id, self.node.network)
         sleep(10)
-        self.node.join_network(bootstrap)
+        self.node.join_network(boostrap_id)
         sleep(10)
-        dht.activate()
+        self.dht.activate()
+
+        chord_thread.join()
+        dht_thread.join()
+
+    def run_chord_http_endpoint(self):
+        chord_app = Flask(f"{__name__}/chord")
+        chord_app.route("/chord", methods=["POST"])(self.receive_chord_request)
+        chord_app.run(debug=True, port=int(CHORD_PORT))
+
+    def run_dht_http_endpoint(self):
+        dht_app = Flask(f"{__name__}/dht")
+        dht_app.route("/lookup", methods=["POST"])(self.dht.lookup)
+        dht_app.route("/insert", methods=["POST"])(self.dht.insert)
+        dht_app.route("/delete", methods=["POST"])(self.dht.delete)
+        dht_app.run(debug=True, port=int(DHT_PORT))
 
     def receive_chord_request(self):
         ser_request = flask_request.data
@@ -254,7 +267,7 @@ class ChordHttpNode:
 
 def main():
     node = ChordHttpNode()
-    node.launch()
+    node.launch_daemon()
 
 
 if __name__ == "__main__":

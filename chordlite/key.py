@@ -4,6 +4,9 @@ from typing import Union, Protocol
 from hashlib import sha256
 
 
+SHA256_KEYSPACE = 1 << 256
+
+
 class ChordKey(Protocol):
     @property
     def value(self) -> int:
@@ -50,7 +53,7 @@ class ChordKey(Protocol):
 @dataclass(unsafe_hash=True)
 class ResourceKey:
     value: int
-    keyspace: int
+    keyspace: int = SHA256_KEYSPACE
 
     def __post_init__(self):
         if self.value < 0:
@@ -107,7 +110,7 @@ class ResourceKey:
 class IPEndpointId:
     ip_address: str
     port: str
-    keyspace: int = 1 << 256
+    keyspace: int = SHA256_KEYSPACE
     key: ChordKey = field(init=False)
 
     def __post_init__(self):
