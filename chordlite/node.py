@@ -3,6 +3,7 @@ from enum import IntEnum
 from typing import List, Tuple, Optional, Protocol
 from dataclasses import dataclass, field
 from math import log2, ceil
+from threading import Lock
 from chordlite.key import ChordKey
 
 
@@ -41,11 +42,12 @@ class ChordNode:
     predecessor: Optional[ChordEndpoint] = field(init=False)
     fingers: List[ChordEndpoint] = field(init=False)
     finger_starts: List[ChordKey] = field(init=False)
+    chall_join_mutex: Lock = field(default_factory=Lock)
 
     def __post_init__(self):
-        m = int(ceil(log2(self.node_id.keyspace)))
-        self.fingers = [self for _ in range(m)]
-        self.finger_starts = [self.node_id + 2**i for i in range(m)]
+        num_fingers = int(ceil(log2(self.node_id.keyspace)))
+        self.fingers = [self for _ in range(num_fingers)]
+        self.finger_starts = [self.node_id + 2**i for i in range(num_fingers)]
         self.predecessor = None
 
     @property
@@ -94,14 +96,15 @@ class ChordNode:
                 # TODO: add error handling
 
     def challenge_join(self, joining_node: ChordEndpoint) -> Tuple[ChordStatus, ChordEndpoint]:
-        old_predecessor = self if self.is_uninitialized else self.predecessor
-        self.predecessor = joining_node
-        if self.is_uninitialized:
-            for i in range(len(self.fingers)):
-                self.fingers[i] = joining_node
-        else:
-            self.update_finger_table()
-        return ChordStatus.SUCCESS, old_predecessor
+        with self.chall_join_mutex:
+            old_predecessor = self if self.is_uninitialized else self.predecessor
+            self.predecessor = joining_node
+            if self.is_uninitialized:
+                for i in range(len(self.fingers)):
+                    self.fingers[i] = joining_node
+            else:
+                self.update_finger_table()
+            return ChordStatus.SUCCESS, old_predecessor
 
     def notify(self, new_successor: ChordEndpoint) -> ChordStatus:
         old_successor = self.fingers[0]

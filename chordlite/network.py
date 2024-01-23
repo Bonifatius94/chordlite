@@ -12,7 +12,7 @@ def log_message(message: ChordRequest):
 @dataclass
 class VirtualNetwork:
     nodes: Dict[ChordKey, NetworkedChordNode] = field(default_factory=dict)
-    logger: Callable[[ChordRequest], None] = field(default=log_message)
+    logger: Callable[[ChordRequest], None] = field(default=lambda m: None)
 
     def register_node(self, node: NetworkedChordNode):
         self.nodes[node.node_id] = node

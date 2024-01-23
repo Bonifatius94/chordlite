@@ -1,2 +1,4 @@
-disable=C0114, C0115, C0116, R0801
+[MASTER]
+disable=C0114, C0115, C0116, R1705
+min-similarity-lines=10
 fail-under=9.0

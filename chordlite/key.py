@@ -61,42 +61,42 @@ class ResourceKey:
         self.value = self.value % self.keyspace
 
     def __add__(self, other: Union[int, ChordKey]) -> ChordKey:
-        other_value = other if type(other) == int else other.value
+        other_value = other if isinstance(other, int) else other.value
         new_value = (self.value + other_value) % self.keyspace
         return ResourceKey(new_value, self.keyspace)
 
     def __sub__(self, other: Union[int, ChordKey]) -> ChordKey:
-        other_value = other if type(other) == int else other.value
+        other_value = other if isinstance(other, int) else other.value
         new_value = (self.value - other_value) % self.keyspace
         return ResourceKey(new_value, self.keyspace)
 
     def __mul__(self, other: Union[int, ChordKey]) -> ChordKey:
-        other_value = other if type(other) == int else other.value
+        other_value = other if isinstance(other, int) else other.value
         new_value = (self.value * other_value) % self.keyspace
         return ResourceKey(new_value, self.keyspace)
 
     def __lt__(self, other: Union[int, ChordKey]) -> bool:
-        other_value = other if type(other) == int else other.value
+        other_value = other if isinstance(other, int) else other.value
         return self.value < other_value
 
     def __le__(self, other: Union[int, ChordKey]) -> bool:
-        other_value = other if type(other) == int else other.value
+        other_value = other if isinstance(other, int) else other.value
         return self.value <= other_value
 
     def __gt__(self, other: Union[int, ChordKey]) -> bool:
-        other_value = other if type(other) == int else other.value
+        other_value = other if isinstance(other, int) else other.value
         return self.value > other_value
 
     def __ge__(self, other: Union[int, ChordKey]) -> bool:
-        other_value = other if type(other) == int else other.value
+        other_value = other if isinstance(other, int) else other.value
         return self.value >= other_value
 
     def __eq__(self, other: Union[int, ChordKey]) -> bool:
-        other_value = other if type(other) == int else other.value
+        other_value = other if isinstance(other, int) else other.value
         return self.value == other_value
 
     def __neq__(self, other: Union[int, ChordKey]) -> bool:
-        other_value = other if type(other) == int else other.value
+        other_value = other if isinstance(other, int) else other.value
         return self.value != other_value
 
     def __str__(self) -> str:
@@ -115,8 +115,8 @@ class IPEndpointId:
 
     def __post_init__(self):
         node_name = f"{self.ip_address}:{self.port}"
-        hash = sha256(node_name.encode("ascii"))
-        value = int(hash.hexdigest(), 16)
+        node_hash = sha256(node_name.encode("ascii"))
+        value = int(node_hash.hexdigest(), 16)
         self.key = ResourceKey(value, self.keyspace)
 
     @property
