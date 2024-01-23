@@ -1,11 +1,11 @@
 from typing import List
 from time import sleep
 from threading import Thread
-from chordlite import ChordKey, ChordNode
+from chordlite import ResourceKey, ChordNode
 
 
 def test_can_init_network_in_parallel():
-    nodes = [ChordNode(ChordKey(k, 1024)) for k in range(0, 1024, 8)]
+    nodes = [ChordNode(ResourceKey(k, 1024)) for k in range(0, 1024, 8)]
 
     def exp_fingers_of_node(node: ChordNode) -> List[ChordNode]:
         return [min(nodes, key=lambda f: f.node_id - s) for s in node.finger_starts]

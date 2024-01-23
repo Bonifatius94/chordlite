@@ -1,57 +1,15 @@
 from __future__ import annotations
 from enum import IntEnum
-from typing import List, Tuple, Union, Optional, Protocol
+from typing import List, Tuple, Optional, Protocol
 from dataclasses import dataclass, field
 from math import log2, ceil
+from chordlite.key import ChordKey
 
 
 class ChordStatus(IntEnum):
     SUCCESS = 0
     FAILURE = 1
     TIMEOUT = 2
-
-
-class ChordKey(Protocol):
-    @property
-    def value(self) -> int:
-        raise NotImplementedError()
-
-    @property
-    def keyspace(self) -> int:
-        raise NotImplementedError()
-
-    def __add__(self, other: Union[int, ChordKey]) -> ChordKey:
-        raise NotImplementedError()
-
-    def __sub__(self, other: Union[int, ChordKey]) -> ChordKey:
-        raise NotImplementedError()
-
-    def __mul__(self, other: Union[int, ChordKey]) -> ChordKey:
-        raise NotImplementedError()
-
-    def __lt__(self, other: Union[int, ChordKey]) -> bool:
-        raise NotImplementedError()
-
-    def __le__(self, other: Union[int, ChordKey]) -> bool:
-        raise NotImplementedError()
-
-    def __gt__(self, other: Union[int, ChordKey]) -> bool:
-        raise NotImplementedError()
-
-    def __ge__(self, other: Union[int, ChordKey]) -> bool:
-        raise NotImplementedError()
-
-    def __eq__(self, other: Union[int, ChordKey]) -> bool:
-        raise NotImplementedError()
-
-    def __neq__(self, other: Union[int, ChordKey]) -> bool:
-        raise NotImplementedError()
-
-    def __str__(self) -> str:
-        raise NotImplementedError()
-
-    def __repr__(self) -> str:
-        raise NotImplementedError()
 
 
 class ChordEndpoint(Protocol):

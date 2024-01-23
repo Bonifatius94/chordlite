@@ -1,11 +1,11 @@
 from typing import List
 from random import shuffle
-from chordlite import ChordKey, ChordNode
+from chordlite import ResourceKey, ChordNode
 
 
 def test_can_init_two_node_network():
-    n1 = ChordNode(ChordKey(0, 1024))
-    n2 = ChordNode(ChordKey(100, 1024))
+    n1 = ChordNode(ResourceKey(0, 1024))
+    n2 = ChordNode(ResourceKey(100, 1024))
 
     bootstrap = n1
     n1.initiate_join(bootstrap)
@@ -18,9 +18,9 @@ def test_can_init_two_node_network():
 
 
 def test_can_init_three_node_network():
-    n1 = ChordNode(ChordKey(0, 1024))
-    n2 = ChordNode(ChordKey(100, 1024))
-    n3 = ChordNode(ChordKey(200, 1024))
+    n1 = ChordNode(ResourceKey(0, 1024))
+    n2 = ChordNode(ResourceKey(100, 1024))
+    n3 = ChordNode(ResourceKey(200, 1024))
 
     bootstrap = n1
     n1.initiate_join(bootstrap)
@@ -36,7 +36,7 @@ def test_can_init_three_node_network():
 
 
 def test_can_init_arbitrary_large_network():
-    nodes = [ChordNode(ChordKey(k, 1024)) for k in range(0, 1024, 8)]
+    nodes = [ChordNode(ResourceKey(k, 1024)) for k in range(0, 1024, 8)]
 
     def exp_fingers_of_node(node: ChordNode) -> List[ChordNode]:
         return [min(nodes, key=lambda f: f.node_id - s) for s in node.finger_starts]
@@ -56,7 +56,7 @@ def test_can_init_arbitrary_large_network():
 
 
 def test_can_init_arbitrary_large_network_unordered():
-    nodes = [ChordNode(ChordKey(k, 1024)) for k in range(0, 1024, 8)]
+    nodes = [ChordNode(ResourceKey(k, 1024)) for k in range(0, 1024, 8)]
     join_sequence = list(range(len(nodes)))
     shuffle(join_sequence)
 
