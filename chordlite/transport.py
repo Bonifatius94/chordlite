@@ -79,7 +79,7 @@ class ChordRemoteEndpoint:
 
     def find_predecessor(self, key: ChordKey) -> ChordEndpoint:
         request = ChordRequest(
-            ChordRequestType.FIND_SUCC,
+            ChordRequestType.FIND_PRED,
             self.remote_id,
             self.local_id,
             self.local_id,
@@ -93,7 +93,7 @@ class ChordRemoteEndpoint:
 
     def challenge_join(self, joining_node: ChordEndpoint) -> Tuple[ChordStatus, ChordEndpoint]:
         request = ChordRequest(
-            ChordRequestType.FIND_SUCC,
+            ChordRequestType.JOIN,
             self.remote_id,
             self.remote_id,
             self.local_id,
@@ -107,7 +107,7 @@ class ChordRemoteEndpoint:
 
     def notify(self, new_successor: ChordEndpoint) -> ChordStatus:
         request = ChordRequest(
-            ChordRequestType.FIND_SUCC,
+            ChordRequestType.NOTIFY,
             self.remote_id,
             self.remote_id,
             self.local_id,
