@@ -13,10 +13,10 @@ def test_can_init_network_over_virtual_network():
     assert len(set([n.node_id for n in nodes])) == 128
 
     def exp_fingers_of_node(node: ChordNode) -> List[ChordNode]:
-        return [min(nodes, key=lambda f: f.node_id - s) for s in node.finger_starts]
+        return [min(nodes, key=lambda f: f.node_id - s).node for s in node.finger_starts]
 
     for node in nodes:
-        network.register_node(node.server)
+        network.register_node(node)
 
     bootstrap_id = min([n.node_id for n in nodes])
     bootstrap_endpoints = [ChordRemoteEndpoint(n.node_id, bootstrap_id, network) for n in nodes]

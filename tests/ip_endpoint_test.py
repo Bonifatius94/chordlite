@@ -1,4 +1,4 @@
-from chordlite import IPEndpointId, ChordKey
+from chordlite import IPEndpointId
 
 
 def test_can_create_endpoint():

@@ -89,7 +89,7 @@ class ChordNode:
             self.update_finger_table(new_successor)
 
             self.predecessor = new_predecessor
-            if self.predecessor != self.successor:
+            if self.predecessor.node_id != self.successor.node_id:
                 status = self.predecessor.notify(self)
                 # TODO: add error handling
 

@@ -1,3 +1,4 @@
+import os
 import socket
 from typing import Callable, Dict
 from dataclasses import dataclass, field
@@ -11,7 +12,11 @@ from flask import Flask, request as flask_request, Response as HttpResponse
 from chordlite import \
     NetworkedChordNode, IPEndpointId, ChordStatus, \
     ChordRequest, ChordResponse, ChordRequestType, \
-    ChordRemoteEndpoint, ChordKey
+    ChordRemoteEndpoint, ResourceKey
+
+
+CHORD_PORT = os.environ["CHORD_PORT"]
+DHT_PORT = os.environ["DHT_PORT"]
 
 
 def local_ip() -> str:
@@ -21,7 +26,7 @@ def local_ip() -> str:
 
 def local_endpoint_factory() -> IPEndpointId:
     ip_address = local_ip()
-    return IPEndpointId(ip_address, "5555")
+    return IPEndpointId(ip_address, CHORD_PORT)
 
 
 def deserialize_endpoint(data: str, keyspace: int) -> IPEndpointId:
@@ -94,7 +99,7 @@ class NetworkBootstrapper:
     def find_bootstrap(self) -> IPEndpointId:
         self.listen = True
         sender_thread = Thread(target=self.send_nodeid)
-        receiver_thread = Thread(target=self.send_nodeid)
+        receiver_thread = Thread(target=self.receive_nodeid)
 
         sender_thread.start()
         receiver_thread.start()
@@ -149,13 +154,13 @@ class DHTService:
             return HttpResponse(status=400)
 
         data_dict = loads(flask_request.data)
-        key = ChordKey(data_dict["resource_id"], 1 << 256)
-        endpoint = self.node.lookup(key)
+        key = ResourceKey(data_dict["resource_id"], 1 << 256)
+        endpoint_id: IPEndpointId = self.node.lookup(key).node_id
 
         response: str
-        if endpoint.node_id != self.node.node_id:
+        if endpoint_id != self.node.node_id:
             response = send_request(
-                f"http://{endpoint.node_id}/lookup",
+                f"http://{endpoint_id.ip_address}:{DHT_PORT}/lookup",
                 data=flask_request.data).raw
         else:
             response = dumps({
@@ -169,13 +174,13 @@ class DHTService:
             return HttpResponse(status=400)
 
         data_dict = loads(flask_request.data)
-        key = ChordKey(data_dict["resource_id"], 1 << 256)
-        endpoint = self.node.lookup(key)
+        key = ResourceKey(data_dict["resource_id"], 1 << 256)
+        endpoint_id: IPEndpointId = self.node.lookup(key).node_id
 
-        response: str
-        if endpoint.node_id != self.node.node_id:
+        response: bytes
+        if endpoint_id != self.node.node_id:
             response = send_request(
-                f"http://{endpoint.node_id}/insert",
+                f"http://{endpoint_id.ip_address}:{DHT_PORT}/insert",
                 data=flask_request.data).raw
         else:
             response = flask_request.data
@@ -187,13 +192,13 @@ class DHTService:
             return HttpResponse(status=400)
 
         data_dict = loads(flask_request.data)
-        key = ChordKey(data_dict["resource_id"], 1 << 256)
-        endpoint = self.node.lookup(key)
+        key = ResourceKey(data_dict["resource_id"], 1 << 256)
+        endpoint_id: IPEndpointId = self.node.lookup(key).node_id
 
         response: str
-        if endpoint.node_id != self.node.node_id:
+        if endpoint_id != self.node.node_id:
             response = send_request(
-                f"http://{endpoint.node_id}/delete",
+                f"http://{endpoint_id.ip_address}:{DHT_PORT}/delete",
                 data=flask_request.data).raw
         else:
             response = flask_request.data
