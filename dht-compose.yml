@@ -8,15 +8,18 @@ services:
       dockerfile: dht.Dockerfile
     environment:
       CHORD_PORT: 5555
-      DHT_PORT: 5556
-      BROADCAST_PORT: 5557
+      BROADCAST_PORT: 5556
+      PYTHONUNBUFFERED: 1
     volumes:
       - ./data:/app/data
-    ports:
-      - 5556:5556
+    networks:
+      - chord
     expose:
       - 5555
-      - 5557
+      - 5556
     deploy:
       mode: replicated
       replicas: 10
+
+networks:
+  chord:

@@ -104,6 +104,8 @@ class ChordNode:
                     self.fingers[i] = joining_node
             else:
                 self.update_finger_table()
+            if self.node_id != old_predecessor.node_id:
+                self.predecessor.notify(joining_node)
             return ChordStatus.SUCCESS, old_predecessor
 
     def notify(self, new_successor: ChordEndpoint) -> ChordStatus:

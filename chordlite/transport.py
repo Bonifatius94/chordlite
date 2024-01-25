@@ -4,7 +4,8 @@ from typing import Tuple, Callable
 from dataclasses import dataclass, field
 from time import sleep
 
-from chordlite.key import IPEndpointId, ChordKey
+from chordlite.key import ChordKey
+from chordlite.endpoint import IPEndpointId
 from chordlite.node import ChordNode, ChordStatus, ChordEndpoint
 
 
@@ -96,8 +97,8 @@ class ChordRemoteEndpoint:
             ChordRequestType.JOIN,
             self.remote_id,
             self.remote_id,
-            self.local_id,
-            self.local_id
+            joining_node.node_id,
+            joining_node.node_id
         )
         response = self.network(request)
         endpoint = ChordRemoteEndpoint(
@@ -110,8 +111,8 @@ class ChordRemoteEndpoint:
             ChordRequestType.NOTIFY,
             self.remote_id,
             self.remote_id,
-            self.local_id,
-            self.local_id
+            new_successor.node_id,
+            new_successor.node_id
         )
         response = self.network(request)
         return response.status
