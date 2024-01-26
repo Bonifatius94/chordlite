@@ -6,20 +6,19 @@ from requests import post as send_request
 from flask import Flask, request as flask_request, Response as HttpResponse
 
 from chordlite import \
-    NetworkedChordNode, local_endpoint, \
-    ChordHttpEndpoint, NetworkBootstrapper
+    NetworkedChordNode, local_endpoint, NetworkBootstrapper, \
+    send_chord_request, receive_chord_request
 from dht_service.dht import DHTService
 
 
 chord_port = os.environ["CHORD_PORT"]
 broadcast_port = os.environ["BROADCAST_PORT"]
 
+
 endpoint = local_endpoint(chord_port)
 post_http = lambda url, data: send_request(url, data).raw
 make_response = lambda body, status: HttpResponse(body, status)
-chord_http: ChordHttpEndpoint
-node = NetworkedChordNode(endpoint, lambda r: chord_http.send_chord_request(r))
-chord_http = ChordHttpEndpoint(node, post_http)
+node = NetworkedChordNode(endpoint, lambda r: send_chord_request(post_http, endpoint.keyspace, r))
 dht = DHTService(node, post_http, make_response, dht_port=int(chord_port))
 bootstrapper = NetworkBootstrapper(endpoint, broadcast_port=int(broadcast_port))
 
@@ -31,8 +30,9 @@ sleep(10)
 app = Flask(f"{__name__}/chord")
 
 @app.route(rule="/chord", methods=["POST"])
-def receive_chord_request():
-    return chord_http.receive_chord_request(flask_request.data)
+def chord_msg():
+    return receive_chord_request(
+        node.process_message, node.node_id.keyspace, flask_request.data)
 
 @app.route(rule="/lookup", methods=["POST"])
 def lookup():

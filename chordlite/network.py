@@ -1,5 +1,7 @@
 from typing import Dict, Callable
 from dataclasses import dataclass, field
+from random import randint
+from time import sleep
 from chordlite.node import ChordKey
 from chordlite.transport import \
     ChordRequest, ChordResponse, NetworkedChordNode
@@ -19,6 +21,10 @@ class VirtualNetwork:
 
     def __call__(self, message: ChordRequest) -> ChordResponse:
         self.logger(message)
+        # TODO: add random latency to harden the protocol
+        # TODO: add message loss to harden the protocol
+        # latency = randint(1, 10) / 1000
+        # sleep(latency)
         receiver = self.nodes[message.forward_id]
         response = receiver.process_message(message)
         return response
